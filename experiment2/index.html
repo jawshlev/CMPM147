@@ -1,8 +1,7 @@
-<!DOCTYPE html>
 <html>
 <head>
 	<!-- This title is used for tabs and bookmarks -->
-	<title>Experiment X - Subject/Topic</title>
+	<title>Experiment 2 - Living Impression</title>
 
 	<!-- Use UTF character set, a good idea with any webpage -->
 	<meta charset="UTF-8" />
@@ -32,30 +31,47 @@
 	<main id="content">
 		<section>
 
-			<h1>Experiment X - Subject/Topic</h1>
+			<h1>Experiment 2 - A Procedurally Generated Living Impression</h1>
 
 			<div class="minor-section">
 				<div id="canvas-container">
 					<!-- canvas will be added here -->
+					
 				</div>
                 <div class="fullscreen-box">
+					<button id="reimagine">Reimagine</button>
                     <button id="fullscreen">Fullscreen</button>
                 </div>
 			</div>
 
-			<div class="minor-section">
-				<h2>Description</h2>
-				<p>What are you trying to acomplish with this experiment?</p>
-			</div>
+            <div class="two-column">
 
-			<div class="minor-section">
-				<h2>Technical</h2>
-				<p>Describe in detail what you did technically and how it works?</p>
-			</div>
+                <div class="minor-section">
+                    <h2>Description</h2>
+                    <p>This project offers a generative, living impression of this inspiring image:</p>
+                    <div class="image-wrapper">
+                        <img src="rice-teraces.jpeg">
+                    </div>
+                </div>
+
+                <div class="minor-section">
+                    <h2>Technical</h2>
+                    <p>Relation to inspring image:</p>
+                    <ul>
+                        <li>Color: The sky, grass, tree, and stone colors were sampled from the inspiring image using the Photoshop eyedropper tool.</li>
+                        <li>Primitives: The trees are rendered with ellipse primitives, and the grass is rendered with one large green rectangle.</li>
+                        <li>Polygons:The waves are rendered via vertex calls, and animated by taking into account MouseX causing wave like changes in the sine graph. The terrace itself is made with vertex calls and is placed within a for loop that creates 10 seperate terraces out of vertexes.</li>
+                        <li>Composition: Different random seed values lead to differently shaped terraces, and tree placement.</li>
+                        <li>Life: The waves move based on the position of mouseX</li>
+                    </ul>
+                    <p>index.html code borrowed from Professor Wes, ChatGPT helped in the creation of the base code, and the mouseX implementation</p>
+                </div>
+
+            </div>
 
 			<div class="minor-section">
 				<h2>Reflection</h2>
-				<p>Each person that worked on the code should reflect on the process, the difficulties, and the successes of the experiment.</p>
+				<p>As I'm going through the experimentation process for Experiment 2, I'm feeling simultaneously excited and stressed. Excited because the course material is coming together, everything is taking shape, and I can see how cool it's going to be. But also stressed because there are still a million little technical problems to solve and not enough time to solve them all. It's crunch time with the deadline of next week's start of classes looming large on the horizon. Hopefully it will all come together in time!</p>
 			</div>
 
 		</section>
