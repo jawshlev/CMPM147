@@ -10,21 +10,14 @@
 const VALUE1 = 1;
 const VALUE2 = 2;
 
-// Globals
-let myInstance;
-let canvasContainer;
-var centerHorz, centerVert;
+/* exported setup, draw */
+let seed = 1738;
 
-class MyClass {
-    constructor(param1, param2) {
-        this.property1 = param1;
-        this.property2 = param2;
-    }
-
-    myMethod() {
-        // code to run when method is called
-    }
-}
+const grassColor = "#858290";
+const stoneColor = "#71ad00";
+const waterColor = "#0077be";
+const treeColor = "#6f8c0b";
+let waveOffset = 0;
 
 function resizeScreen() {
   centerHorz = canvasContainer.width() / 2; // Adjusted for drawing logic
@@ -34,46 +27,68 @@ function resizeScreen() {
   // redrawCanvas(); // Redraw everything based on new size
 }
 
-// setup() function is called once when the program starts
-function setup() {
-  // place our canvas, making it fit our container
+$("#reimagine").click(function() {
+  seed++;
+});
+
+function setup() {  // place our canvas, making it fit our container
   canvasContainer = $("#canvas-container");
   let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
   canvas.parent("canvas-container");
-  // resize canvas is the page is resized
-
-  // create an instance of the class
-  myInstance = new MyClass("VALUE1", "VALUE2");
-
   $(window).resize(function() {
     resizeScreen();
   });
   resizeScreen();
 }
 
-// draw() function is called repeatedly, it's the main animation loop
 function draw() {
-  background(220);    
-  // call a method on the instance
-  myInstance.myMethod();
+  randomSeed(seed);
 
-  // Set up rotation for the rectangle
-  push(); // Save the current drawing context
-  translate(centerHorz, centerVert); // Move the origin to the rectangle's center
-  rotate(frameCount / 100.0); // Rotate by frameCount to animate the rotation
-  fill(234, 31, 81);
+  background(100);
+
   noStroke();
-  rect(-125, -125, 250, 250); // Draw the rectangle centered on the new origin
-  pop(); // Restore the original drawing context
 
-  // The text is not affected by the translate and rotate
-  fill(255);
-  textStyle(BOLD);
-  textSize(140);
-  text("p5*", centerHorz - 105, centerVert + 40);
-}
+  //grass
+  fill(grassColor);
+  rect(0, height * 0.5, width, height * 0.5);
+  
+  // Calculate wave offset based on mouseX
+  let waveOffsetMouse = map(mouseX, 0, width, -PI, PI);
+  
+  //water
+  fill(waterColor);
+  beginShape();
+  vertex(0, height * 0.8);
+  for (let x = 0; x < width; x += 10) {
+    let y = height * 0.85 + sin(x * 0.06 + waveOffset + waveOffsetMouse) * 10;
+    vertex(x, y);
+  }
+  vertex(width, height * 0.8);
+  vertex(width, height);
+  vertex(0, height);
+  endShape(CLOSE);
 
-// mousePressed() function is called once after every time a mouse button is pressed
-function mousePressed() {
-    // code to run when mouse is pressed
+  //terrace
+  fill(stoneColor);
+  const terraceCount = 8;
+  const terraceHeight = (height * 0.8) / terraceCount;
+  for (let i = 0; i < terraceCount; i++) {
+    beginShape();
+    vertex(0, height * 0.8 - i * terraceHeight);
+    for (let j = 0; j < width; j += random(20, 40)) {
+      let y = height * 0.8 - i * terraceHeight - random(0, 20);
+      vertex(j, y);
+    }
+    vertex(width, height * 0.8 - i * terraceHeight);
+    vertex(width, height * 0.8 - (i + 1) * terraceHeight);
+    vertex(0, height * 0.8 - (i + 1) * terraceHeight);
+    endShape(CLOSE);
+  }
+  //tree
+  fill(treeColor);
+  for (let i = 0; i < 15; i++) {
+    let x = random(width);
+    let y = height * 0.45 - random(10, 90);
+    ellipse(x, y, random(10, 20), random(20, 40));
+  }
 }
