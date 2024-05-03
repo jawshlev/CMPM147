@@ -77,33 +77,16 @@ function preload() {
 }
 
 // setup() function is called once when the program starts
-function setup() {
-  // place our canvas, making it fit our container
-  canvasContainer = $(containerId);
+function setup() {  
+  canvasContainer = $("#canvas-container");
   let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
-  canvas.parent(containerId);
-  // resize canvas is the page is resized
-
-  camera_offset = new p5.Vector(-width / 2, height / 2);
-  camera_velocity = new p5.Vector(0, 0);
-
-  if (window.p3_setup) {
-    window.p3_setup();
-  }
-
-  let inputKey = $("#world-seed");
-  // event handler if the input key changes
-  inputKey.change(() => {
-    rebuildWorld(inputKey.val());
-  });
-
-  rebuildWorld(inputKey.val());
-
+  canvas.parent("canvas-container");
   $(window).resize(function() {
     resizeScreen();
   });
   resizeScreen();
 }
+
 
 function rebuildWorld(key) {
   if (window.p3_worldKeyChanged) {
