@@ -1,235 +1,228 @@
-/* exported preload, setup, draw, placeTile */
+// sketch.js - purpose and description here
+// Author: Your Name
+// Date:
 
-/* global generateGrid drawGrid */
+// Here is how you might set up an OOP p5.js project
+// Note that p5.js looks for a file called sketch.js
 
-let seed = 0;
-let tilesetImage;
-let currentGrid = [];
-let numRows, numCols;
+// Constants - User-servicable parts
+const containerId = "#canvas-container";
+
+// Globals
+let myInstance;
+let canvasContainer;
+var centerHorz, centerVert;
+
+function resizeScreen() {
+  centerHorz = canvasContainer.width() / 2; // Adjusted for drawing logic
+  centerVert = canvasContainer.height() / 2; // Adjusted for drawing logic
+  console.log("Resizing...");
+  resizeCanvas(canvasContainer.width(), canvasContainer.height());
+  // redrawCanvas(); // Redraw everything based on new size
+}
+
+let tile_width_step_main; // A width step is half a tile's width
+let tile_height_step_main; // A height step is half a tile's height
+
+// Global variables. These will mostly be overwritten in setup().
+let tile_rows, tile_columns;
+let camera_offset;
+let camera_velocity;
+
+/////////////////////////////
+// Transforms between coordinate systems
+// These are actually slightly weirder than in full 3d...
+/////////////////////////////
+function worldToScreen([world_x, world_y], [camera_x, camera_y]) {
+  let i = (world_x - world_y) * tile_width_step_main;
+  let j = (world_x + world_y) * tile_height_step_main;
+  return [i + camera_x, j + camera_y];
+}
+
+function worldToCamera([world_x, world_y], [camera_x, camera_y]) {
+  let i = (world_x - world_y) * tile_width_step_main;
+  let j = (world_x + world_y) * tile_height_step_main;
+  return [i, j];
+}
+
+function tileRenderingOrder(offset) {
+  return [offset[1] - offset[0], offset[0] + offset[1]];
+}
+
+function screenToWorld([screen_x, screen_y], [camera_x, camera_y]) {
+  screen_x -= camera_x;
+  screen_y -= camera_y;
+  screen_x /= tile_width_step_main * 2;
+  screen_y /= tile_height_step_main * 2;
+  screen_y += 0.5;
+  return [Math.floor(screen_y + screen_x), Math.floor(screen_y - screen_x)];
+}
+
+function cameraToWorldOffset([camera_x, camera_y]) {
+  let world_x = camera_x / (tile_width_step_main * 2);
+  let world_y = camera_y / (tile_height_step_main * 2);
+  return { x: Math.round(world_x), y: Math.round(world_y) };
+}
+
+function worldOffsetToCamera([world_x, world_y]) {
+  let camera_x = world_x * (tile_width_step_main * 2);
+  let camera_y = world_y * (tile_height_step_main * 2);
+  return new p5.Vector(camera_x, camera_y);
+}
 
 function preload() {
-  tilesetImage = loadImage(
-    "https://cdn.glitch.com/25101045-29e2-407a-894c-e0243cd8c7c6%2FtilesetP8.png?v=1611654020438"
-  );
-}
-
-function reseed() {
-  seed = (seed | 0) + 1109;
-  randomSeed(seed);
-  noiseSeed(seed);
-  select("#seedReport").html("seed " + seed);
-  regenerateGrid();
-}
-
-function regenerateGrid() {
-  select("#asciiBox").value(gridToString(generateGrid(numCols, numRows)));
-  reparseGrid();
-}
-
-function reparseGrid() {
-  currentGrid = stringToGrid(select("#asciiBox").value());
-}
-
-function gridToString(grid) {
-  let rows = [];
-  for (let i = 0; i < grid.length; i++) {
-    rows.push(grid[i].join(""));
+  if (window.p3_preload) {
+    window.p3_preload();
   }
-  return rows.join("\n");
 }
 
-function stringToGrid(str) {
-  let grid = [];
-  let lines = str.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    let row = [];
-    let chars = lines[i].split("");
-    for (let j = 0; j < chars.length; j++) {
-      row.push(chars[j]);
-    }
-    grid.push(row);
-  }
-  return grid;
-}
-
+// setup() function is called once when the program starts
 function setup() {
-  numCols = select("#asciiBox").attribute("rows") | 0;
-  numRows = select("#asciiBox").attribute("cols") | 0;
+  // place our canvas, making it fit our container
+  canvasContainer = $(containerId);
+  let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
+  canvas.parent(containerId);
+  // resize canvas is the page is resized
 
-  createCanvas(16 * numCols, 16 * numRows).parent("canvasContainer");
-  select("canvas").elt.getContext("2d").imageSmoothingEnabled = false;
+  camera_offset = new p5.Vector(-width / 2, height / 2);
+  camera_velocity = new p5.Vector(0, 0);
 
-  select("#reseedButton").mousePressed(reseed);
-  select("#asciiBox").input(reparseGrid);
+  if (window.p3_setup) {
+    window.p3_setup();
+  }
 
-  reseed();
+  let inputKey = $("#world-seed");
+  // event handler if the input key changes
+  inputKey.change(() => {
+    rebuildWorld(inputKey.val());
+  });
+
+  rebuildWorld(inputKey.val());
+
+  $(window).resize(function() {
+    resizeScreen();
+  });
+  resizeScreen();
 }
 
+function rebuildWorld(key) {
+  if (window.p3_worldKeyChanged) {
+    window.p3_worldKeyChanged(key);
+  }
+  tile_width_step_main = window.p3_tileWidth ? window.p3_tileWidth() : 32;
+  tile_height_step_main = window.p3_tileHeight ? window.p3_tileHeight() : 14.5;
+  tile_columns = Math.ceil(width / (tile_width_step_main * 2));
+  tile_rows = Math.ceil(height / (tile_height_step_main * 2));
+}
 
+// draw() function is called repeatedly, it's the main animation loop
 function draw() {
-  randomSeed(seed);
-  drawGrid(currentGrid);
+  // Keyboard controls!
+  if (keyIsDown(LEFT_ARROW)) {
+    camera_velocity.x -= 1;
+  }
+  if (keyIsDown(RIGHT_ARROW)) {
+    camera_velocity.x += 1;
+  }
+  if (keyIsDown(DOWN_ARROW)) {
+    camera_velocity.y -= 1;
+  }
+  if (keyIsDown(UP_ARROW)) {
+    camera_velocity.y += 1;
+  }
+
+  let camera_delta = new p5.Vector(0, 0);
+  camera_velocity.add(camera_delta);
+  camera_offset.add(camera_velocity);
+  camera_velocity.mult(0.95); // cheap easing
+  if (camera_velocity.mag() < 0.01) {
+    camera_velocity.setMag(0);
+  }
+
+  let world_pos = screenToWorld(
+    [0 - mouseX, mouseY],
+    [camera_offset.x, camera_offset.y]
+  );
+  let world_offset = cameraToWorldOffset([camera_offset.x, camera_offset.y]);
+
+  background(100);
+
+  if (window.p3_drawBefore) {
+    window.p3_drawBefore();
+  }
+
+  let overdraw = 0.1;
+
+  let y0 = Math.floor((0 - overdraw) * tile_rows);
+  let y1 = Math.floor((1 + overdraw) * tile_rows);
+  let x0 = Math.floor((0 - overdraw) * tile_columns);
+  let x1 = Math.floor((1 + overdraw) * tile_columns);
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      drawTile(tileRenderingOrder([x + world_offset.x, y - world_offset.y]), [
+        camera_offset.x,
+        camera_offset.y
+      ]); // odd row
+    }
+    for (let x = x0; x < x1; x++) {
+      drawTile(
+        tileRenderingOrder([
+          x + 0.5 + world_offset.x,
+          y + 0.5 - world_offset.y
+        ]),
+        [camera_offset.x, camera_offset.y]
+      ); // even rows are offset horizontally
+    }
+  }
+
+  describeMouseTile(world_pos, [camera_offset.x, camera_offset.y]);
+
+  if (window.p3_drawAfter) {
+    window.p3_drawAfter();
+  }
 }
 
-function placeTile(i, j, ti, tj) {
-  image(tilesetImage, 16 * j, 16 * i, 16, 16, 8 * ti, 8 * tj, 8, 8);
-}
+function mouseClicked() {
+  let world_pos = screenToWorld(
+    [0 - mouseX, mouseY],
+    [camera_offset.x, camera_offset.y]
+  );
 
-/* exported generateGrid, drawGrid */
-/* global placeTile */
-
-// Global variable for tile offset pairs
-const lookup = [
-  [0, 0], // 0000
-  [0, 1], // 0001
-  [0, -1], // 0010
-  [0, 0], // 0011
-  [1, 0], // 0100
-  [1, 1], // 0101
-  [1, -1], // 0110
-  [0, 0], // 0111
-  [-1, 0], // 1000
-  [-1, 1], // 1001
-  [-1, -1], // 1010
-  [0, 0], // 1011
-  [0, 0], // 1100
-  [0, 0], // 1101
-  [0, 0], // 1110
-  [0, 0], // 1111
-];
-
-// Function to check if a location is inside the grid and matches the target
-function gridCheck(grid, i, j, target) {
-  if (i >= 0 && i < grid.length && j >= 0 && j < grid[i].length) {
-    return grid[i][j] === target;
+  if (window.p3_tileClicked) {
+    window.p3_tileClicked(world_pos[0], world_pos[1]);
   }
   return false;
 }
 
-// Function to form a 4-bit code using gridCheck on the neighbors
-function gridCode(grid, i, j, target) {
-  const northBit = gridCheck(grid, i - 1, j, target) ? 1 : 0;
-  const southBit = gridCheck(grid, i + 1, j, target) ? 1 : 0;
-  const eastBit = gridCheck(grid, i, j + 1, target) ? 1 : 0;
-  const westBit = gridCheck(grid, i, j - 1, target) ? 1 : 0;
-  return (northBit << 0) + (southBit << 1) + (eastBit << 2) + (westBit << 3);
+// Display a discription of the tile at world_x, world_y.
+function describeMouseTile([world_x, world_y], [camera_x, camera_y]) {
+  let [screen_x, screen_y] = worldToScreen(
+    [world_x, world_y],
+    [camera_x, camera_y]
+  );
+  drawTileDescription([world_x, world_y], [0 - screen_x, screen_y]);
 }
 
-// Function to draw context based on grid code and target
-function drawContext(grid, i, j, target, ti, tj) {
-  const code = gridCode(grid, i, j, target);
-  const [tiOffset, tjOffset] = lookup[code];
-  placeTile(i, j, ti + tiOffset, tj + tjOffset);
-}
-  
-function generateGrid(numCols, numRows) {
-  let grid = [];
-  for (let i = 0; i < numRows; i++) {
-    let row = [];
-    for (let j = 0; j < numCols; j++) {
-      row.push("_");
-    }
-    grid.push(row);
+function drawTileDescription([world_x, world_y], [screen_x, screen_y]) {
+  push();
+  translate(screen_x, screen_y);
+  if (window.p3_drawSelectedTile) {
+    window.p3_drawSelectedTile(world_x, world_y, screen_x, screen_y);
   }
-  
-  const roomMinSize = 5; // Minimum size of a room
-  const roomMaxSize = 10; // Maximum size of a room
-  const numRooms = 5; // Number of rooms
-  const minDistanceBetweenRooms = 3; // Minimum distance between rooms
-
-  // Helper function to check if a point is inside a room
-  function isInsideRoom(x, y) {
-    for (let room of rooms) {
-      if (x >= room.x && x < room.x + room.width && y >= room.y && y < room.y + room.height) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Generate rooms
-  let rooms = [];
-  for (let i = 0; i < numRooms; i++) {
-    let roomWidth = floor(random(roomMinSize, roomMaxSize));
-    let roomHeight = floor(random(roomMinSize, roomMaxSize));
-    let roomX = floor(random(1, numCols - roomWidth - 1));
-    let roomY = floor(random(1, numRows - roomHeight - 1));
-    
-    // Check if the new room overlaps with existing rooms
-    let overlaps = false;
-    for (let room of rooms) {
-      if (roomX < room.x + room.width + minDistanceBetweenRooms &&
-          roomX + roomWidth + minDistanceBetweenRooms > room.x &&
-          roomY < room.y + room.height + minDistanceBetweenRooms &&
-          roomY + roomHeight + minDistanceBetweenRooms > room.y) {
-        overlaps = true;
-        break;
-      }
-    }
-
-    // If the room doesn't overlap, add it to the grid
-    if (!overlaps) {
-      for (let y = roomY; y < roomY + roomHeight; y++) {
-        for (let x = roomX; x < roomX + roomWidth; x++) {
-          grid[y][x] = "|";
-        }
-      }
-      rooms.push({x: roomX, y: roomY, width: roomWidth, height: roomHeight});
-    }
-  }
-
-  // Connect rooms with hallways
-  for (let i = 0; i < rooms.length - 1; i++) {
-    let room1 = rooms[i];
-    let room2 = rooms[i + 1];
-
-    let x1 = Math.floor(room1.x + room1.width / 2);
-    let y1 = Math.floor(room1.y + room1.height / 2);
-    let x2 = Math.floor(room2.x + room2.width / 2);
-    let y2 = Math.floor(room2.y + room2.height / 2);
-
-    while (x1 !== x2 || y1 !== y2) {
-      if (!isInsideRoom(x1, y1)) {
-        grid[y1][x1] = "|";
-      }
-      if (x1 < x2) x1++;
-      else if (x1 > x2) x1--;
-      if (y1 < y2) y1++;
-      else if (y1 > y2) y1--;
-    }
-  }
-
-  // Add borders around rooms and hallways
-  for (let room of rooms) {
-    for (let y = room.y - 1; y <= room.y + room.height; y++) {
-      if (y >= 0 && y < numRows) {
-        if (grid[y][room.x - 1] === "_") grid[y][room.x - 1] = "B"; // Left border
-        if (grid[y][room.x + room.width] === "_") grid[y][room.x + room.width] = "B"; // Right border
-      }
-    }
-    for (let x = room.x - 1; x <= room.x + room.width; x++) {
-      if (grid[room.y - 1][x] === "_") grid[room.y - 1][x] = "B"; // Top border
-      if (grid[room.y + room.height][x] === "_") grid[room.y + room.height][x] = "B"; // Bottom border
-    }
-  }
-
-  return grid;
+  pop();
 }
 
-
-
-function drawGrid(grid) {
-  background(128);
-
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      if (gridCheck(grid, i, j, "|")) { // Check if current cell is part of the room
-        placeTile(i, j, floor(random(4)), 0); // Place a random tile for the room
-      } else { // Otherwise, handle transitions using autotiling logic
-        drawContext(grid, i, j, "|", 2, 12);
-      }
-    }
+// Draw a tile, mostly by calling the user's drawing code.
+function drawTile([world_x, world_y], [camera_x, camera_y]) {
+  let [screen_x, screen_y] = worldToScreen(
+    [world_x, world_y],
+    [camera_x, camera_y]
+  );
+  push();
+  translate(0 - screen_x, screen_y);
+  if (window.p3_drawTile) {
+    window.p3_drawTile(world_x, world_y, -screen_x, screen_y);
   }
+  pop();
 }
-
-
