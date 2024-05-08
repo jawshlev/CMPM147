@@ -5,27 +5,27 @@ function getInspirations() {
   return [
     {
       name: "Burger Woman", 
-      assetUrl: "experiment5/img/burgerwoman.jpeg",
+      assetUrl: "img/burgerwoman.jpeg",
       credit: "Pinterest"
     },
     {
       name: "Mr Business Cat", 
-      assetUrl: "experiment5/img/mr business cat.jpeg",
+      assetUrl: "img/mrbusinesscat.jpeg",
       credit: "Pinterest"
     },
     {
       name: "Pengoon", 
-      assetUrl: "experiment5/img/pengoon.jpeg",
+      assetUrl: "img/pengoon.jpeg",
       credit: "Flickr, Famzoo Staff"
     },
     {
       name: "Cheese", 
-      assetUrl: "experiment5/img/cheese.jpeg",
+      assetUrl: "img/cheese.jpeg",
       credit: "Robert Gober, 2020"
     },
     {
       name: "Vegetables",
-      assetUrl: "experiment5/img/vegetable.jpeg",
+      assetUrl: "img/vegetable.jpeg",
       credit: "stock photo via pinterest"
     },
   ];
@@ -35,12 +35,11 @@ function initDesign(inspiration) {
   let canvasContainer = $('.image-container'); // Select the container using jQuery
   let canvasWidth = canvasContainer.width(); // Get the width of the container
   let aspectRatio = inspiration.image.height / inspiration.image.width;
-  let canvasHeight = canvasWidth * aspectRatio; // Calculate the height based on the aspect ratio
-  resizeCanvas(canvasWidth, canvasHeight);
+  resizeCanvas(inspiration.image.width / 4, inspiration.image.height / 4);
   $(".caption").text(inspiration.credit); // Set the caption text
 
   // add the original image to #original
-  const imgHTML = `<img src="${inspiration.assetUrl}" style="width:${canvasWidth}px;">`
+  const imgHTML = `<img src="${inspiration.assetUrl}" style="width:${canvasWidth/4}px;">`
   $('#original').empty();
   $('#original').append(imgHTML);
   let design = {
