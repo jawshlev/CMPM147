@@ -32,13 +32,11 @@ function getInspirations() {
 }
 
 function initDesign(inspiration) {
-  let canvasContainer = $('.image-container'); // Select the container using jQuery
-  let canvasWidth = canvasContainer.width(); // Get the width of the container
+  let canvasContainer = $('.image-container');
+  let canvasWidth = canvasContainer.width();
   let aspectRatio = inspiration.image.height / inspiration.image.width;
   resizeCanvas(inspiration.image.width / 4, inspiration.image.height / 4);
-  $(".caption").text(inspiration.credit); // Set the caption text
-
-  // add the original image to #original
+  $(".caption").text(inspiration.credit);
   const imgHTML = `<img src="${inspiration.assetUrl}" style="width:${canvasWidth/4}px;">`
   $('#original').empty();
   $('#original').append(imgHTML);
